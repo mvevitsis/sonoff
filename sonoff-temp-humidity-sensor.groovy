@@ -27,7 +27,6 @@ metadata {
         capability "Health Check"
         
 		fingerprint profileId: "0104", inClusters: "0000,0003,0402,0405", outClusters: "0003", model: "TH01", deviceJoinName: "SONOFF Temperature & Humidity Sensor", manufacturer: "eWeLink"
-        
     }
 
     preferences {
@@ -96,7 +95,7 @@ def refresh() {
 }
 
 def getBatteryPercentageResult(rawValue) {
-	log.debug "Battery percentage is ${rawValue}%"
+	log.debug "Battery Percentage rawValue = ${rawValue} -> ${rawValue}%"
 	def result = [:]
 
 	if (0 <= rawValue && rawValue <= 100) {
@@ -111,8 +110,7 @@ def getBatteryPercentageResult(rawValue) {
 
 private Map getBatteryResult(rawValue) {
 	def volts = rawValue / 10
-    log.debug "Battery voltage is ${volts}v"
-
+	log.debug "Battery Voltage rawValue = ${rawValue} -> ${volts}v"
 }
 
 def configure() {
@@ -120,12 +118,6 @@ def configure() {
     sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 
     log.debug "Configuring Reporting and Bindings."
-	[
-        "zdo bind 0x${device.deviceNetworkId} 1 1 0x001 {${device.zigbeeId}} {}", //battery
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x402 {${device.zigbeeId}} {}", //temperature
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x405 {${device.zigbeeId}} {}", //humidity
-		"send 0x${device.deviceNetworkId} 1 1"
-    ]
     
     //minReportTime 60 seconds, maxReportTime 1 hour
     return refresh() +
