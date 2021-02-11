@@ -25,8 +25,8 @@ metadata {
         capability "Relative Humidity Measurement"
         capability "Sensor"
         capability "Health Check"
-        
-		fingerprint profileId: "0104", inClusters: "0000,0003,0402,0405", outClusters: "0003", model: "TH01", deviceJoinName: "SONOFF Temperature & Humidity Sensor", manufacturer: "eWeLink"
+		
+        fingerprint profileId: "0104", inClusters: "0000,0003,0402,0405, 0001", outClusters: "0003", model: "TH01", deviceJoinName: "SONOFF Temperature & Humidity Sensor", manufacturer: "eWeLink"
     }
 
     preferences {
@@ -39,7 +39,7 @@ metadata {
 def parse(String description) {
     log.debug "description: $description"
 
-    // getEvent will handle temperature and humidity
+    //getEvent will handle temperature and humidity
     Map map = zigbee.getEvent(description)
     if (!map) {
         Map descMap = zigbee.parseDescriptionAsMap(description)
@@ -95,34 +95,35 @@ def refresh() {
 }
 
 def getBatteryPercentageResult(rawValue) {
-	log.debug "Battery Percentage rawValue = ${rawValue} -> ${rawValue}%"
+	log.debug "Battery percentage rawValue = ${rawValue} -> ${rawValue / 2}%"
 	def result = [:]
 
-	if (0 <= rawValue && rawValue <= 100) {
+	if (0 <= rawValue && rawValue <= 200) {
 		result.name = 'battery'
 		result.translatable = true
-		result.value = Math.round(rawValue)
-		result.descriptionText = "${device.displayName} battery is ${result.value}%"
+		result.value = Math.round(rawValue / 2)
+		result.descriptionText = "${device.displayName} battery was ${result.value}%"
 	}
 
 	return result
+    
 }
 
 private Map getBatteryResult(rawValue) {
 	def volts = rawValue / 10
-	log.debug "Battery Voltage rawValue = ${rawValue} -> ${volts}v"
+	log.debug "Battery voltage rawValue = ${rawValue} -> ${volts}v"
+
 }
 
 def configure() {
     // Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
     sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 
-    log.debug "Configuring Reporting and Bindings."
-    
-    //minReportTime 60 seconds, maxReportTime 1 hour
+   	log.debug "Setting reporting..."
     return refresh() +
-    	   zigbee.configureReporting(0x0402, 0x0000, DataType.UINT16, 60, 3600, 20) +   //temperature
-           zigbee.configureReporting(0x0405, 0x0000, DataType.UINT16, 60, 3600, 200) +  //humidity
+    	   zigbee.configureReporting(0x0402, 0x0000, DataType.UINT16, 60, 3600, 10) +   //temperature
+           zigbee.configureReporting(0x0405, 0x0000, DataType.UINT16, 60, 3600, 100) +  //humidity
            zigbee.configureReporting(0x0001, 0x0020, DataType.UINT16, 60, 3600, 0x01) + //battery voltage
            zigbee.configureReporting(0x0001, 0x0021, DataType.UINT16, 60, 3600, 0x01)   //battery percentage
+    
 }
