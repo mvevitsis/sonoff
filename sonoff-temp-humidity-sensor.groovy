@@ -16,7 +16,9 @@
 
 metadata {
     definition(name: "SONOFF SNZB-02", namespace: "mvevitsis", author: "mvevitsis", mnmn: "SmartThingsCommunity", ocfDeviceType: "oic.d.thermostat", vid: "e89a61ab-bde3-39eb-b9d6-c3b34b25120e") {
-        capability "Configuration"
+        //use vid: "e89a61ab-bde3-39eb-b9d6-c3b34b25120e" to enable refresh button
+        //use vid: "23c9be50-98c3-34cb-b52f-ecc9fbfe72cc" to disable refresh button
+	capability "Configuration"
         capability "Battery"
         capability "Refresh"
         capability "Temperature Measurement"
