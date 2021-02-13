@@ -93,8 +93,8 @@ def refresh() {
     log.debug "Device refresh requested..."
     return zigbee.readAttribute(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000) +
            zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000) +
-		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) + //battery voltage
-           zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021) //battery percentage
+		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) +
+           zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021) 
 
 }
 
@@ -127,7 +127,7 @@ def configure() {
     return refresh() +
            zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 100) +
            zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 10) +
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 30, 3600, 0x01) //battery voltage
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 30, 3600, 0x01) //battery percentage
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 30, 3600, 0x01) +
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 30, 3600, 0x01) 
 
 }
