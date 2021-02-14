@@ -53,7 +53,7 @@ def parse(String description) {
             }
         }else if (descMap.clusterInt == 0x0001 && descMap.commandInt != 0x07 && descMap?.value) {
 			if (descMap.attrInt == 0x0021) {
-            			map = getBatteryPercentageResult(Integer.parseInt(descMap.value,16))
+            			map = getBatteryPercentageResult(Integer.parseInt(descMap.value, 16))
 			} else {
 				map = getBatteryResult(Integer.parseInt(descMap.value, 16))
             		}
@@ -77,6 +77,10 @@ def parse(String description) {
 
 def installed() {
 	log.debug "Device installed..."
+    //initialize capabilities 
+    sendEvent(name: 'temperature', value: 0, unit: 'C', displayed: false)
+    sendEvent(name: 'humidity', value: 100, unit: '%', displayed: false)
+    sendEvent(name: 'battery', value: 50, unit: '%', displayed: false)
 	configure()
 }
 
@@ -93,8 +97,8 @@ def refresh() {
     log.debug "Device refresh requested..."
     return zigbee.readAttribute(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000) +
            zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000) +
-		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) +
-           zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021) 
+		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) + //battery volts
+           zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021)   //battery percentage
 
 }
 
@@ -115,6 +119,7 @@ def getBatteryPercentageResult(rawValue) {
 private Map getBatteryResult(rawValue) {
 	def volts = rawValue / 10
 	log.debug "Battery voltage rawValue = ${rawValue} -> ${volts}v"
+    //device reports percentage, so volts is unused 
 }
 
 def configure() {
@@ -122,12 +127,11 @@ def configure() {
     sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 
     log.debug "Configuring reporting intervals..."
-
-    // Default minReportTime 30 seconds, maxReportTime 1 hour
+	// Default minReportTime 30 seconds, maxReportTime 1 hour
     return refresh() +
            zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 100) +
            zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 10) +
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 30, 3600, 0x01) +
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 30, 3600, 0x01) 
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 30, 3600, 0x01) + //battery volts
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 30, 3600, 0x01)   //battery percentage
 
 }
