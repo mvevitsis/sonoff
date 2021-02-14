@@ -127,11 +127,11 @@ def configure() {
     sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 
     log.debug "Configuring reporting intervals..."
-	// Default minReportTime 30 seconds, maxReportTime 1 hour
+	// Default minReportTime 1 minute, maxReportTime 1 hour
     return refresh() +
-           zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 100) +
-           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, 3600, 10) +
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 30, 3600, 0x01) + //battery volts
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 30, 3600, 0x01)   //battery percentage
+           zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 200) + //default reportableChange 200
+           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 20) + //default reportableChange 20
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 60, 3600, 0x01) + //battery volts
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 60, 3600, 0x01)   //battery percentage
 
 }
