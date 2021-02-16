@@ -126,20 +126,27 @@ private Map getBatteryResult(rawValue) {
 }
 
 def configure() {
+	log.debug "Starting configuration..."
 	// Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
+    log.debug "...setting health check interval..."
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
-
+	
 	// temperature minReportTime 30 seconds, maxReportTime 5 min by default
     // humidity minReportTime 30 seconds, maxReportTime 5 min by default
 	// battery minReportTime 30 seconds, maxReportTime 1 hr by default
-    def tempTime = tempMaxReportTime ? tempMaxReportTime : 300
-    def tempChange = tempReportableChange ? tempReportableChange : 10
+   	log.debug "...configuring reporting settings..."
+	def tempTime = tempMaxReportTime ? tempMaxReportTime : 300
+    log.debug "...temperature maximum report time is set to $tempTime..."
+	def tempChange = tempReportableChange ? tempReportableChange : 10
+    log.debug "...temperature reportable change is set to $tempChange..."
     def humidityTime = humidityMaxReportTime ? humidityMaxReportTime : 300
+    log.debug "...humidity maximum report time is set to $humidityTime..."
 	def humidityChange = humidityReportableChange ? humidityReportableChange : 100
-	log.debug "Configuring reporting intervals..."
+    log.debug "...humidity reportable change is set to $humidityChange..."
     return refresh() +
            zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, tempTime, tempChange) + //default reportableChange 10 = 0.1°
 		   zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, humidityTime, humidityChange) + //default reportableChange 100 = 1%
            zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020, DataType.UINT8, 30, 3600, 0x01) + //default reportableChange 1 = 0.1v
            zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 30, 3600, 0x02) //default reportableChange 2 = 1%
+    log.debug "Configuration (${device.deviceNetworkId} ${device.zigbeeId}) finished..."
 }
