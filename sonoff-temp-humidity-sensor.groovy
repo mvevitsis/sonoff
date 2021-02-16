@@ -32,7 +32,11 @@ metadata {
     preferences {
         input "tempOffset", "number", title: "Temperature offset", description: "Select how many degrees to adjust the temperature.", range: "*..*", displayDuringSetup: false
         input "humidityOffset", "number", title: "Humidity offset", description: "Enter a percentage to adjust the humidity.", range: "*..*", displayDuringSetup: false
-    }
+        input "tempMaxReportTime", "number", title: "Temperature Maximum Report Time", description: "Maximum number of seconds between temperature reports (default 300 = 5 min)", range: "60..3600", defaultValue: "300", displayDuringSetup: false
+		input "tempReportableChange", "number", title: "Temperature Reportable Change", description: "Amount of change needed to trigger a temperature report (default 10 = 0.1°)", range: "10..1000", defaultValue: "10", displayDuringSetup: false
+		input "humidityMaxReportTime", "number", title: "Humidity Maximum Report Time", description: "Maximum number of seconds between humidity reports (default 300 = 5 min)", range: "60..3600", defaultValue: "300", displayDuringSetup: false
+		input "humidityReportableChange", "number", title: "Humidity Reportable Change", description: "Amount of change needed to trigger a humidity report (default 100 = 1%)", range: "10..1000", defaultValue: "100", displayDuringSetup: false
+	}
 
 }
 
@@ -47,8 +51,13 @@ def parse(String description) {
 		if (descMap?.clusterInt == zigbee.TEMPERATURE_MEASUREMENT_CLUSTER && descMap.commandInt == 0x07) {
             if (descMap.data[0] == "00") {
                 log.debug "TEMP REPORTING CONFIG RESPONSE: $descMap"
-                sendEvent(name: "checkInterval", value: 60 * 12, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
-            } else {
+                //set checkInterval to twice the longer maxReportTime plus 1 min
+                if (tempMaxReportTime < humidityMaxReportTime){
+                	sendEvent(name: "checkInterval", value: 2 * humidityMaxReportTime + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+                } else {
+                	sendEvent(name: "checkInterval", value: 2 * tempMaxReportTime + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+                }
+			} else {
                 log.warn "TEMP REPORTING CONFIG FAILED- error code: ${descMap.data[0]}"
             }
         }else if (descMap.clusterInt == 0x0001 && descMap.commandInt != 0x07 && descMap?.value) {
@@ -95,9 +104,9 @@ def ping() {
 
 def refresh() {
     log.debug "Device refresh requested..."
-    return zigbee.readAttribute(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000) +
-           zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000) +
-		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) + //battery volts
+    return zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000) +
+           zigbee.readAttribute(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000) +
+		   zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020) + //battery voltage
            zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021)   //battery percentage
 
 }
@@ -123,15 +132,17 @@ private Map getBatteryResult(rawValue) {
 }
 
 def configure() {
-    // Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
-    sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+	// Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
+    // enrolls with default periodic reporting until newer interval is confirmed
+	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 
-    log.debug "Configuring reporting intervals..."
-	// Default minReportTime 1 minute, maxReportTime 1 hour
+	// temperature minReportTime 30 seconds, maxReportTime 5 min by default
+    // humidity minReportTime 30 seconds, maxReportTime 5 min by default
+	// battery minReportTime 30 seconds, maxReportTime 1 hr by default
+	log.debug "Configuring reporting intervals..."
     return refresh() +
-           zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 200) + //default reportableChange 200
-           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 20) + //default reportableChange 20
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x20, DataType.UINT16, 60, 3600, 0x01) + //battery volts
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x21, DataType.UINT16, 60, 3600, 0x01)   //battery percentage
-
+           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, tempMaxReportTime, tempReportableChange) + //default reportableChange 10 = 0.1°
+		   zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, humidityMaxReportTime, humidityReportableChange) + //default reportableChange 100 = 1%
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020, DataType.UINT8, 30, 3600, 0x01) + //default reportableChange 1 = 0.1v
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 30, 3600, 0x02) //default reportableChange 2 = 1%
 }
