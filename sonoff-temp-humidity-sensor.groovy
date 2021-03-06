@@ -1,6 +1,8 @@
 /*
      *  SONOFF SNZB-02 ZigBee Temperature & Humidity Sensor 
-     *
+     *  
+     *  Copyright 2021 Matvei Vevitsis
+     *  Based on code copyright SmartThings
      *
      *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
      *  in compliance with the License. You may obtain a copy of the License at:
@@ -15,7 +17,7 @@
     import physicalgraph.zigbee.zcl.DataType
 
 metadata {
-    definition(name: "SONOFF SNZB-02", namespace: "mvevitsis", author: "mvevitsis", mnmn:"SmartThings", ocfDeviceType: "oic.d.thermostat", vid: "23c9be50-98c3-34cb-b52f-ecc9fbfe72cc") {
+    definition(name: "SONOFF SNZB-02", namespace: "circlefield05082", author: "Matvei Vevitsis", mnmn: "SmartThingsCommunity", ocfDeviceType: "oic.d.thermostat", vid: "23c9be50-98c3-34cb-b52f-ecc9fbfe72cc") {
         //use vid: "e89a61ab-bde3-39eb-b9d6-c3b34b25120e" to enable refresh button
         //use vid: "23c9be50-98c3-34cb-b52f-ecc9fbfe72cc" to disable refresh button
         capability "Configuration"
@@ -32,10 +34,6 @@ metadata {
     preferences {
         input "tempOffset", "number", title: "Temperature offset", description: "Select how many degrees to adjust the temperature.", range: "*..*", displayDuringSetup: false
         input "humidityOffset", "number", title: "Humidity offset", description: "Enter a percentage to adjust the humidity.", range: "*..*", displayDuringSetup: false
-        input "tempMaxReportTime", "number", title: "Temperature Maximum Report Time", description: "Maximum number of seconds between temperature reports (default 300 = 5 min)", range: "60..3600", displayDuringSetup: false
-		input "tempReportableChange", "number", title: "Temperature Reportable Change", description: "Amount of change needed to trigger a temperature report (default 10 = 0.1°)", range: "10..1000", displayDuringSetup: false
-		input "humidityMaxReportTime", "number", title: "Humidity Maximum Report Time", description: "Maximum number of seconds between humidity reports (default 300 = 5 min)", range: "60..3600", displayDuringSetup: false
-		input "humidityReportableChange", "number", title: "Humidity Reportable Change", description: "Amount of change needed to trigger a humidity report (default 100 = 1%)", range: "10..1000", displayDuringSetup: false
 	}
 
 }
@@ -84,7 +82,7 @@ def installed() {
     sendEvent(name: 'temperature', value: 0, unit: 'C', displayed: false)
     sendEvent(name: 'humidity', value: 100, unit: '%', displayed: false)
     sendEvent(name: 'battery', value: 50, unit: '%', displayed: false)
-	configure()
+    configure()
 }
 
 def updated() {
@@ -122,31 +120,21 @@ def getBatteryPercentageResult(rawValue) {
 private Map getBatteryResult(rawValue) {
 	def volts = rawValue / 10
 	log.debug "Battery voltage rawValue = ${rawValue} -> ${volts}v"
-    //device reports percentage, so volts is unused 
 }
 
 def configure() {
 	log.debug "Starting configuration..."
-	// Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
+	
+    // Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
     log.debug "...setting health check interval..."
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 	
-	// temperature minReportTime 30 seconds, maxReportTime 5 min by default
-    // humidity minReportTime 30 seconds, maxReportTime 5 min by default
-	// battery minReportTime 30 seconds, maxReportTime 1 hr by default
+	// Default minReportTime 1 min, maxReportTime 1 hr
    	log.debug "...configuring reporting settings..."
-	def tempTime = tempMaxReportTime ? tempMaxReportTime : 300
-    log.debug "...temperature maximum report time is set to $tempTime..."
-	def tempChange = tempReportableChange ? tempReportableChange : 10
-    log.debug "...temperature reportable change is set to $tempChange..."
-    def humidityTime = humidityMaxReportTime ? humidityMaxReportTime : 300
-    log.debug "...humidity maximum report time is set to $humidityTime..."
-	def humidityChange = humidityReportableChange ? humidityReportableChange : 100
-    log.debug "...humidity reportable change is set to $humidityChange..."
     return refresh() +
-           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 30, tempTime, tempChange) + //default reportableChange 10 = 0.1°
-		   zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 30, humidityTime, humidityChange) + //default reportableChange 100 = 1%
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020, DataType.UINT8, 30, 3600, 0x01) + //default reportableChange 1 = 0.1v
-           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 30, 3600, 0x02) //default reportableChange 2 = 1%
+           zigbee.configureReporting(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 10) + //default reportableChange 10 = 0.1°
+		   zigbee.configureReporting(zigbee.RELATIVE_HUMIDITY_CLUSTER, 0x0000, DataType.UINT16, 60, 3600, 100) + //default reportableChange 100 = 1%
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020, DataType.UINT8, 60, 3600, 0x01) + //default reportableChange 1 = 0.1v
+           zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 60, 3600, 0x02) //default reportableChange 2 = 1%
     log.debug "Configuration (${device.deviceNetworkId} ${device.zigbeeId}) finished..."
 }
